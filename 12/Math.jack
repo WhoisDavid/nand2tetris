@@ -1,0 +1,147 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/12/Math.jack
+
+/**
+ * A library of commonly used mathematical functions.
+ * Note: Jack compilers implement multiplication and division using OS method calls.
+ */
+class Math {
+
+    static Array bit_mask;
+    static int div_2qy;
+
+    /** Initializes the library. */
+    function void init() {
+        let bit_mask = Array.new(16);
+        let bit_mask[0] = 1;
+        let bit_mask[1] = 2;
+        let bit_mask[2] = 4;
+        let bit_mask[3] = 8;
+        let bit_mask[4] = 16;
+        let bit_mask[5] = 32;
+        let bit_mask[6] = 64;
+        let bit_mask[7] = 128;
+        let bit_mask[8] = 256;
+        let bit_mask[9] = 512;
+        let bit_mask[10] = 1024;
+        let bit_mask[11] = 2048;
+        let bit_mask[12] = 4096;
+        let bit_mask[13] = 8192;
+        let bit_mask[14] = 16384;
+        let bit_mask[15] = 16384 + 16384;
+        return;
+    }
+
+    /** returns the bit_mask value */
+    function int get_bit_mask(int i){
+        return bit_mask[i];
+    }
+
+    /** Returns the absolute value of x. */
+    function int abs(int x) {
+        if (x < 0) { 
+            return -x; 
+        }
+        return x;
+    }
+
+    /** returns the i-th bit of an integer x*/
+    function int bit(int x, int i){
+        return (x & bit_mask[i]) = bit_mask[i];
+    }
+
+
+    /** Returns the product of x and y. 
+     *  When a Jack compiler detects the multiplication operator '*' in the 
+     *  program's code, it handles it by invoking this method. In other words,
+     *  the Jack expressions x*y and multiply(x,y) return the same value.
+     */
+    function int multiply(int x, int y) {
+        var int sum, shiftedX, idx;
+        let sum = 0;
+        let shiftedX = x;
+        let idx = 0;
+        while (idx < 16) {
+            if ( (y & bit_mask[idx]) = bit_mask[idx] ){
+                let sum = sum + shiftedX;
+            }
+            let shiftedX = shiftedX + shiftedX;
+            let idx = idx + 1;
+        }
+        return sum;
+    }
+
+    /** Returns the integer part of x/y.
+     *  When a Jack compiler detects the multiplication operator '/' in the 
+     *  program's code, it handles it by invoking this method. In other words,
+     *  the Jack expressions x/y and divide(x,y) return the same value.
+     */
+    function int divide(int x, int y){
+        var boolean negative;
+
+        if (x = 0) { return 0; }
+
+        let div_2qy = 0;
+        let negative = ((x < 0) | (y < 0)) & ((x > 0) | (y > 0));
+
+        if (negative){
+            return -Math.divide_aux(Math.abs(x), Math.abs(y));
+        }else{
+            return Math.divide_aux(Math.abs(x), Math.abs(y));
+        }
+    }
+
+    function int divide_aux(int x, int y) {
+        var int q;
+        if ( (y > x) | (y < 0)) { return 0;}
+
+        if (y < 16384){
+            let q = Math.divide_aux(x, y + y);
+        }else{
+            let q = 0;
+        }
+        if( (x - div_2qy) < y) {
+            return q + q;
+        }else{
+            let div_2qy = div_2qy + y;
+            return q + q + 1;
+        }
+    }
+
+    /** Returns the integer part of the square root of x. */
+    function int sqrt(int x) {
+        var int y, idx;
+        var int tmp_sqrt, tmp_square;
+        let y = 0;
+        let idx = 7;
+        while ( (idx + 1) > 0 ){
+            let tmp_sqrt = y + bit_mask[idx];
+            let tmp_square = tmp_sqrt * tmp_sqrt;
+            if ( ((tmp_square - 1) < x) & (tmp_square > 0) ){
+                let y = tmp_sqrt;
+            }
+            let idx = idx - 1;
+        }
+        return y;
+    }
+
+    /** Returns the greater number. */
+    function int max(int a, int b) {
+        if ( a < b ){
+            return b;
+        }
+
+        return a;
+    }
+
+    /** Returns the smaller number. */
+    function int min(int a, int b) {
+        if ( a > b ){
+            return b;
+        }
+
+        return a;
+    }
+}

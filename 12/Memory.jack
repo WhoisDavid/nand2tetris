@@ -1,0 +1,100 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/12/Memory.jack
+
+/**
+ * This library provides two services: direct access to the computer's main
+ * memory (RAM), and allocation and recycling of memory blocks. The Hack RAM
+ * consists of 32,768 words, each holding a 16-bit binary number.
+ */ 
+class Memory {
+
+    static Array ram, free_block;
+    static int heapBase;
+    static int _next_segment, _block_size, _block;
+    /** Initializes the class. */
+    function void init() {
+
+        let ram = 0;
+
+        let heapBase = 2048; 
+
+        let free_block = heapBase + 2; // header size = 2
+        let free_block[-2] = 0; // next data block pointer
+        let free_block[-1] = 14335; // size of data block
+
+        return;
+    }
+
+    /** Returns the RAM value at the given address. */
+    function int peek(int address) {
+        return ram[address];
+    }
+
+    /** Sets the RAM value at the given address to the given value. */
+    function void poke(int address, int value) {
+        let ram[address] = value;
+        return;
+    }
+
+    /** Finds an available RAM block of the given size and returns
+     *  a reference to its base address. */
+    function int alloc(int size) {
+        var Array current_block, best_block, allocated_block;
+        let current_block = free_block;
+        let best_block = current_block;
+
+        while (~(current_block[-2] = null)){
+            if (current_block[-1] > (size + 1)){  // >= size + 2
+                if (best_block[-1] > current_block[-1]){
+                    let best_block = current_block; // addr of the data block (header[0] = addr-1 = size, header[1] = addr-2 = pointer)
+                }
+            }
+            let current_block = current_block[-2] + 2; // next block
+        }
+
+        if (best_block[-1] < (size + 2)){
+            do Sys.error(314); // alloc failure
+            return null;
+        }
+
+        let allocated_block = best_block + best_block[-1] - size; // split best_block in two and allocates the bottom part
+        let best_block[-1] = (allocated_block - best_block) - 2; // resizes best block (needs -2 for the allocated block's header)
+        
+        let allocated_block[-1] = size;
+        let allocated_block[-2] = ~size; // sets the pointer of the allocated block to not(size)
+
+        return allocated_block;
+    }
+
+    /** De-allocates the given object (cast as an array) by making
+     *  it available for future allocations. */
+    function void deAlloc(Array o) {
+        var Array previous_block, block, next_block;
+        let block = o;
+        let previous_block = free_block;
+        let next_block = previous_block[-2] + 2;
+        while ((~(next_block[-2] = null)) & (block < next_block)){
+            let previous_block = next_block;
+            let next_block = previous_block[-2];
+        }
+
+        // inserts node between previous and next
+        let previous_block[-2] = block;
+        let block[-2] = next_block;
+
+        // Combine block with next_block if contiguous.
+        if ((block + block[-1] + 2) = next_block){
+            let block[-1] = block[-1] + next_block[-1] + 2;
+            let block[-2] = next_block[-2];
+        }
+        // Combine block with prev_block if contiguous.
+        if ((previous_block + previous_block[1] + 2) = block){
+            let previous_block[-1] = previous_block[-1] + block[-1] + 2;
+            let previous_block[-2] = block[-2];
+        }
+
+        return;
+    }    
+}

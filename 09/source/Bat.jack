@@ -1,0 +1,102 @@
+  /** Represents the player's bat **/
+  class Bat {
+  
+    field int x, y;            // the bat's screen location
+    field int width, height;   // the bat's width and height
+    field int shift;           // Bat shift i.e. how much it moves when commanded to
+    field int direction;       // direction of the shift (-1 = left/up, 1 = right/down)
+    field int vx, vy;          // Bat velocity used to abstract the movement defined by shift and direction
+
+    /** Constructs a new bat with the given location and width. */
+    constructor Bat new(int Ax, int Ay, int Ashift, int Awidth, int Aheight) {
+        let x = Ax;
+        let y = Ay;
+        let width = Awidth;
+        let height = Aheight;
+
+        let shift = Ashift;
+
+        // the bat is idle by default
+        let vx = 0;
+        let vy = 0;
+
+        do show();
+        return this;
+    }
+
+    /** Deallocates the object's memory. **/
+    method void dispose() {
+        do Memory.deAlloc(this);
+        return;
+    }
+
+    /** Getters and setters **/
+        method int getX1(){
+            return x;
+        }
+
+        method int getX2(){
+            return x + width;
+        }
+
+        method int getY1(){
+            return y;
+        }
+
+        method int getY2(){
+            return y + height;
+        }
+
+        method void increaseVelocity(int inc){
+            let shift = shift + inc;
+            return;
+        }
+
+        method void setVx(int direction){
+            let vx = direction * shift;
+            return;
+        }
+
+        method void setVy(int direction){
+            let vy = direction * shift;
+            return;
+        }
+
+    /** Shows the bat. **/
+    method void show() {
+        do Screen.setColor(true);
+        do draw();
+        return;
+    }
+
+    /** Hides the bat. **/
+    method void hide() {
+        do Screen.setColor(false);
+        do draw();
+        return;
+    }
+
+    /** Draws the bat. **/
+    method void draw() {
+        do Scene.drawShallowRectangle(x, y, x + width, y + height);
+        return;
+    }
+
+    /** Moves the bat and checks for boundary conditions **/
+    method void move() {
+        do hide();
+
+        let x = x + vx;
+        let y = y + vy;
+
+        if (x < 0) { let x = 0; }
+        if (y < 0) { let y = 0; }
+
+        if ((x +  width) > Scene.getXMax()) { let x = Scene.getXMax() - width; }
+        if ((y + height) > Scene.getYMax()) { let y = Scene.getYMax() - height; }
+
+        do show();
+        return;
+    }
+
+}

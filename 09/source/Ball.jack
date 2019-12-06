@@ -1,0 +1,254 @@
+/**
+ * A graphical 3D ball.
+ * The ball is represented as a 2D filled circle whose radius scales down with the depth.
+ **/
+class Ball {
+
+    static int rmax;
+
+    field int x0, y0, z0;                        // ball coordinates
+    field int x, y, z, r;                        // ball coordinates in the projection
+    field int vx, vy, vz;                        // velocity vector
+
+    field int frameX, frameY;                    // current 2D frame in the z-axis
+
+    /** Constructs a new ball with the given initial location and wall locations. */
+    constructor Ball new(int Ax, int Ay, int Az, int Armax,
+                         int Avx, int Avy, int Avz) {    	
+	    
+        // Max ball radius
+        let rmax = Armax;
+
+        // initial position
+        let x0 = Ax;
+	    let y0 = Ay;
+        let z0 = Az;
+
+        // initial position in projection
+        let x = Ax;		
+	    let y = Ay;
+        let z = Az;
+        
+        // initial velocity
+        let vx = Avx; 
+        let vy = Avy;
+        let vz = Avz; // needs to be even
+
+        // initialized the frame (z=0)
+        let frameX = 0; 
+        let frameY = 0;
+
+        let r = getRadius();
+
+        do show();
+        return this;
+    }
+
+    /** Deallocates the Ball's memory. */
+    method void dispose() {
+        do Memory.deAlloc(this);
+        return;
+    }
+
+    /** Getters and setters **/
+        method int getDepth(){
+            return z;
+        }
+
+        method int getFrameX(){
+            return frameX;
+        }
+
+        method int getFrameY(){
+            return frameY;
+        }
+
+        method void increaseVelocity(){
+            let vx = vx + 1;
+            let vy = vy + 1;
+            let vz = vz + 2;
+            return;
+        }
+
+    /** Shows the ball. */
+    method void show() {
+        do Screen.setColor(true);
+        do draw();
+        return;
+    }
+
+    /** Hides the ball. */
+    method void hide() {
+        do Screen.setColor(false);
+	    do draw();
+        return;
+    }
+
+    /** Draws the ball and the frame around it */
+    method void draw() {
+        var String zaxis, zval;
+        do Scene.drawCenteredShallowRectangle(frameX, frameY);
+	    do Screen.drawCircle(x, y, r);
+	    return;
+    }
+
+    /** Simple perspective projection for the ball location .
+        Overflowing multiplications and loss of precision is what makes it more complicated.
+        
+        The projection is simply a scaling proportional to the size of the current frame the ball is in.
+        projection = frame_shift + original_coordinates * (frame_size / screen_size)
+
+        This translates with the variables here to (e.g. for the x-axis):
+        x = frameX + x0 * ( Scene.getXMax() - 2 * frameX ) / Scene.getXMax()
+
+        Scene.getXMax() is set to the maximum screen size of the Hack computer i.e. 511 in this case.
+        The equation is rewritten and variables scaled down to try and optimize for precsion and avoid overflowing past 15-bit integers.
+
+        In addition, to avoid jitter in the movements of the balls, a simple smoothing is applied. 
+        This limits the movement of the ball on both axes to maximum half of it's radius.
+    **/
+    method void projection(){
+        var int scale;
+        var int xmax; 
+        var int x_tmp, y_tmp, epsilon;
+        
+        let scale = 8 ;  // used to scale down big multiplications
+        let xmax = Scene.getXMax() / scale;
+
+        let x_tmp = (frameX * xmax) + (x0 * xmax) - (2 * (frameX / scale) * x0);
+        let x_tmp = x_tmp / xmax;
+
+        let y_tmp = (frameY * xmax) + (y0 * xmax) - (2 * (frameX / scale) * y0);
+        let y_tmp = y_tmp / xmax;
+
+        let epsilon = r/2; // smooth the projection to avoid jumps because of approximations forced by 15-bit limit
+        if ( (x_tmp - x) > epsilon ){ 
+            let x = x + epsilon;
+        }else{
+            if ( (x - x_tmp) > epsilon ){
+                let x = x - epsilon;
+            }else{
+                let x = x_tmp;
+            }
+        }
+
+        if ( (y_tmp - y) > epsilon ){
+            let y = y + epsilon;
+        }else{
+            if ( (y - y_tmp) > epsilon ){
+                let y = y - epsilon;
+            }else{
+                let y = y_tmp;
+            }
+        }
+
+        // Make sure the projection is within the current frame
+        let x = Math.min(Scene.getXMax() - frameX - r, Math.max(x, frameX + r));
+        let y = Math.min(Scene.getYMax() - frameY - r, Math.max(y, frameY + r));
+ 
+        return;
+    }
+
+    /** The radius of the ball is proportional to its current frame size (similar to the projection) **/
+    method int getRadius(){
+        return (rmax * (Scene.getXMax() - (2*frameX))) / Scene.getXMax();
+    }
+
+
+    /** Hide the ball, calculates its new coordinates and project them 
+        If the ball hits a bound (wall) the velocity needs to be reversed.
+        This is the reflexion of the velocity v on the plane represented by the wall.
+        Since the walls are perpendicular/parallel to the axes, this simplifies to -v.
+
+        General reflection of vector v on plane with normal n = v - 2 * <v,n> * n
+        Reflexion of vx on plane with normal n (1,0,0) =  v - 2 * <v,n> * n = vx - 2vx = -vx
+    **/
+    method void move() {
+        var boolean xlim, ylim, zlim; // Booleans indicating whether the ball hits a limit (wall) or not
+        let xlim = false;
+        let ylim = false;
+        let zlim = false;
+
+        do hide();
+ 
+        let r = getRadius();
+
+        if ((x0 + vx - r) < 0){  // left border
+            let vx = - vx;
+            let x0 = r;
+            let xlim = true;
+        }
+
+        if ((x0 + vx + r) > Scene.getXMax()){  // right border
+            let vx = - vx;
+            let x0 = Scene.getXMax() - r;
+            let xlim = true;
+        }
+
+        if ((y0 + vy - r) < 0){ // top border
+            let vy = - vy;
+            let y0 = r;
+            let ylim = true;
+        }
+
+        if ((y0 + vy + r) > Scene.getYMax()){ // bottom border
+            let vy = - vy;
+            let y0 = Scene.getYMax() - r;
+            let ylim = true;
+        }
+
+        if ((z + vz) < 0){ // beginning of the corridor i.e. player's side
+            let vz = - vz;
+            let z = 0;
+            let zlim = true;
+            
+            let frameX = 0;
+            let frameY = 0;
+        }
+
+        if ((z + vz) > Scene.getOpponentXMax()){ // end of the corridor i.e opponent side
+            let vz = - vz;
+            let z = Scene.getOpponentXMax();
+            let zlim = true;
+
+            let frameX = Scene.getOpponentXMax();
+            let frameY = Scene.getOpponentYMax();
+        }
+        
+        // if the ball does not hit a wall simply move them forward
+            if (~ xlim){
+                let x0 = x0 + vx;
+            }
+
+            if (~ ylim){
+                let y0 = y0 + vy;
+            }
+
+            if (~ zlim){
+                let z = z + vz;
+                let frameX = frameX + vz;
+                let frameY = frameY + (vz / (Scene.getXMax() / Scene.getYMax()));
+            }
+
+        do projection(); // calculates the projected coodinates (x, y) from (x0, y0)
+    
+        do show();
+
+        return;
+    }
+
+    /* Calculates whether the ball is within a rectangle or not */
+    method boolean intersect(int x1, int y1, int x2, int y2){
+        if ( ((x+r) < x1) | ( (x-r) > x2) |  ((y+r) < y1) | ((y-r) > y2) ) {
+            return false;
+        }else{
+            return true;
+        }
+    }
+
+    /* Simply applies the intersection with a rectangle to the bat */
+    method boolean intersectBat(Bat bat){
+        return intersect(bat.getX1(), bat.getY1(), bat.getX2(), bat.getY2());
+    }
+
+}

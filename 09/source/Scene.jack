@@ -1,0 +1,96 @@
+/**
+ * Scene of the game (background) which is the projection of a corridor.
+ * It is repesented by smaller and smaller centered and shallow rectangles of proportional sides.
+ **/
+class Scene {
+    
+    static int screenXMax, screenYMax;      // max screen size
+    static int opponentXMax, opponentYMax;  // size of the "opponent" i.e. the opposite end of the corridor
+
+    field int scale, scaleMax;              // (scale / scaleMax) used to replace floating point
+    field int depth;                        // controls the number of rectangles projected in the scene
+
+    constructor Scene new(){
+
+        let screenXMax = 511;
+        let screenYMax = 255;
+
+        let scaleMax = 10;
+        let scale = 9;
+        let depth = 4;
+
+        do draw();
+    
+        return this;
+    }
+
+    /** Disposes of the scene. */
+    method void dispose() {
+        do Memory.deAlloc(this);
+        return;
+    }
+
+    method void draw(){
+        var int scale_factor, i;
+        do Screen.setColor(true);
+        let scale_factor = scaleMax;
+        let i = 0;
+        do Scene.drawCenteredShallowRectangle(0, 0);
+
+        while (i < depth) {
+            let scale_factor = (scale_factor * scale) / scaleMax;
+            do Scene.drawCenteredShallowRectangle(
+                screenXMax - ((screenXMax * scale_factor) / scaleMax), 
+                screenYMax - ((screenYMax * scale_factor) / scaleMax));
+            let i = i + 1;
+        }
+
+        let opponentXMax = screenXMax - ((screenXMax * scale_factor) / scaleMax);
+        let opponentYMax = screenYMax - ((screenYMax * scale_factor) / scaleMax);
+
+        do drawCornerLines(opponentXMax, opponentYMax);
+
+        return;
+    }
+
+    function void drawCenteredShallowRectangle(int x1, int y1){
+        var int x2, y2;
+        let x2 = screenXMax - x1;
+        let y2 = screenYMax - y1;    
+        do Scene.drawShallowRectangle(x1, y1, x2, y2);
+        return;
+    }
+
+    function void drawShallowRectangle(int x1, int y1, int x2, int y2){
+        do Screen.drawLine(x1, y1, x2, y1);
+        do Screen.drawLine(x1, y1, x1, y2);
+        do Screen.drawLine(x1, y2, x2, y2);
+        do Screen.drawLine(x2, y1, x2, y2);
+        return;
+    }
+
+    method void drawCornerLines(int xmax, int ymax){
+        do Screen.drawLine(0, 0, xmax, ymax);
+        do Screen.drawLine(0, screenYMax, xmax, screenYMax-ymax);
+        do Screen.drawLine(screenXMax, 0, screenXMax-xmax, ymax);
+        do Screen.drawLine(screenXMax, screenYMax, screenXMax-xmax, screenYMax-ymax);
+
+        return;
+    }
+
+    function int getXMax(){
+        return screenXMax;
+    }
+
+    function int getYMax(){
+        return screenYMax;
+    }
+
+    function int getOpponentXMax(){
+        return opponentXMax;
+    }
+
+    function int getOpponentYMax(){
+        return opponentYMax;
+    }
+}

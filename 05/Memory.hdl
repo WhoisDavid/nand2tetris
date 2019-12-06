@@ -1,0 +1,68 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/05/Memory.hdl
+
+/**
+ * The complete address space of the Hack computer's memory,
+ * including RAM and memory-mapped I/O. 
+ * The chip facilitates read and write operations, as follows:
+ *     Read:  out(t) = Memory[address(t)](t)
+ *     Write: if load(t-1) then Memory[address(t-1)](t) = in(t-1)
+ * In words: the chip always outputs the value stored at the memory 
+ * location specified by address. If load==1, the in value is loaded 
+ * into the memory location specified by address. This value becomes 
+ * available through the out output from the next time step onward.
+ * Address space rules:
+ * Only the upper 16K+8K+1 words of the Memory chip are used. 
+ * Access to address>0x6000 is invalid. Access to any address in 
+ * the range 0x4000-0x5FFF results in accessing the screen memory 
+ * map. Access to address 0x6000 results in accessing the keyboard 
+ * memory map. The behavior in these addresses is described in the 
+ * Screen and Keyboard chip specifications given in the book.
+ */
+
+CHIP Memory {
+    IN in[16], load, address[15];
+    OUT out[16];
+
+    PARTS:
+
+    // address = 15-bits = a14 a13 .... a0
+    // a14 = 0 => RAM
+    // a14 = 1 and a13 = 0 => Screen
+    // a14 = 1 and a13 = 1
+
+    /* DMux4Way
+    {a, b, c, d} = {in, 0, 0, 0} if sel == 00  => Ram
+                   {0, in, 0, 0} if sel == 01  => Ram
+                   {0, 0, in, 0} if sel == 10  => Screen
+                   {0, 0, 0, in} if sel == 11  => Keyboard
+    */
+    DMux4Way(in=true, sel=address[13..14], a=toRam11, b=toRam2, c=toScreen, d=toKeyboard1);
+    
+    Or(a=toRam11, b=toRam2, out=toRam);
+    And(a=toRam, b=load, out=loadRam);
+    RAM16K(in=in, load=loadRam, address=address[0..13], out=ramOutput);
+    
+    And(a=toScreen, b=load, out=loadScreen);
+    Screen(in=in, load=loadScreen, address=address[0..12], out=screenOutput);
+    
+    Or8Way(in=address[0..7], out=first8);
+    Or8Way(in[0..4]=address[8..12], in[5]=first8, in[6..7]=false, out=notKeyboard);
+    Not(in=notKeyboard, out=toKeyboard2);
+    And(a=toKeyboard1, b=toKeyboard2, out=toKeyboard);
+    Keyboard(out=keyboardOutput);
+
+    /** Mux4Way16
+    * out = a if sel == 00  => null
+    *       b if sel == 01  => RAM
+    *       c if sel == 10  => Screen
+    *       d if sel == 11  => Keyboard
+    *       sel[0] = toRam | toKeyboard
+            sel[1] = toScreen | toKeyboard
+    */
+    Or(a=toRam, b=toKeyboard, out=sel0);
+    Or(a=toScreen, b=toKeyboard, out=sel1);
+    Mux4Way16(a=false, b=ramOutput, c=screenOutput, d=keyboardOutput, sel[0]=sel0, sel[1]=sel1, out=out);
+}

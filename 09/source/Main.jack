@@ -1,0 +1,85 @@
+/** Initializes new game and starts running it. **/
+class Main {
+
+    function void main() {
+        var Pong3dGame game;
+        var char key;
+        var boolean exit;
+        
+        do Main.startScreen(true);
+        
+        while ( key = 0 ){
+            let key = Keyboard.keyPressed();
+        }
+
+        do Main.startScreen(false);
+        
+        while (~ exit) {
+            do Pong3dGame.newInstance();
+            let game = Pong3dGame.getInstance();
+            let exit = game.run();
+            do game.dispose();
+        }
+        return;
+    }
+
+    /* Start screen logo and instructions */
+    function void startScreen(boolean show){
+        var int row, col;
+        let row = 6;
+        let col = 5;
+
+        do Screen.setColor(show);
+        
+        do Output.moveCursor(row, col);
+        do Output.printString(" ____                               __       __      ");
+        
+        let row = row + 1;
+        do Output.moveCursor(row, col);
+        do Output.printString("/\\  _`\\                           /'__`\\    /\\ \\     ");
+        
+        let row = row + 1;
+        do Output.moveCursor(row, col);
+        do Output.printString("\\ \\ \\L\\ \\___     ___      __     /\\_\\L\\ \\   \\_\\ \\    ");
+        
+        let row = row + 1;
+        do Output.moveCursor(row, col);
+        do Output.printString(" \\ \\ ,__/ __`\\ /' _ `\\  /'_ `\\   \\/_/_\\_<_  /'_` \\   ");
+        
+        let row = row + 1;
+        do Output.moveCursor(row, col);
+        do Output.printString("  \\ \\ \\/\\ \\L\\ \\/\\ \\/\\ \\/\\ \\L\\ \\    /\\ \\L\\ \\/\\ \\L\\ \\  ");
+        
+        let row = row + 1;
+        do Output.moveCursor(row, col); 
+        do Output.printString("   \\ \\_\\ \\____/\\ \\_\\ \\_\\ \\____ \\   \\ \\____/\\ \\___,_\\ ");
+        
+        let row = row + 1;
+        do Output.moveCursor(row, col); 
+        do Output.printString("    \\/_/\\/___/  \\/_/\\/_/\\/___L\\ \\   \\/___/  \\/__,_ / ");
+        
+        let row = row + 1;
+        do Output.moveCursor(row, col); 
+        do Output.printString("                          /\\____/                    ");
+        
+        let row = row + 1;
+        do Output.moveCursor(row, col);
+        do Output.printString("                          \\_/__/               ");
+        
+        let row = row + 3;
+        do Output.moveCursor(row, 20);
+        do Output.printString("[Press any key to start]");
+
+        let row = row + 3;
+        do Output.moveCursor(row, col);
+        do Output.printString("Instructions:");
+        let row = row + 1;
+        do Output.moveCursor(row, col);
+        do Output.printString(" - use arrow keys to move your bat and catch the ball!");
+        let row = row + 1;
+        do Output.moveCursor(row, col);
+        do Output.printString(" - speed increases every 5 points");
+
+        return;
+    }
+}
